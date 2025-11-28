@@ -1,0 +1,24 @@
+-- Run this in SSMS first
+USE exam_monitoring_system;
+GO
+
+-- Behavior events table
+CREATE TABLE behavior_events (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    camera_id INT NOT NULL,
+    recording_id INT NULL,
+    behavior_label NVARCHAR(100) NOT NULL,
+    confidence FLOAT NULL,
+    severity NVARCHAR(20) DEFAULT 'medium' CHECK (severity IN ('low','medium','high','critical')),
+    frame_timestamp DATETIME2 NOT NULL,
+    frame_index INT NULL,
+    bbox NVARCHAR(200) NULL,
+    extra_data NVARCHAR(MAX) NULL,
+    created_at DATETIME2 DEFAULT GETDATE(),
+    FOREIGN KEY (camera_id) REFERENCES cameras(id) ON DELETE CASCADE
+);
+GO
+
+-- Index for fast queries
+CREATE INDEX idx_behavior_camera_time ON behavior_events(camera_id, frame_timestamp DESC);
+GO

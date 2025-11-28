@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Proctoring - PT Algorithm</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+        
+        .video-section {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+        }
+        
+        .video-container {
+            position: relative;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        #video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+        
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-primary:hover { background: #059669; }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-danger:hover { background: #dc2626; }
+        
+        .btn:disabled {
+            background: #6b7280;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        
+        .status.active { background: rgba(16, 185, 129, 0.2); }
+        .status.alert { background: rgba(239, 68, 68, 0.2); }
+        
+        .alerts-section {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 800px;
+            overflow-y: auto;
+        }
+        
+        .alerts-section h2 {
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+        
+        .alert-item {
+            background: rgba(239, 68, 68, 0.2);
+            border-left: 4px solid #ef4444;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+        }
+        
+        .alert-item.low { 
+            background: rgba(59, 130, 246, 0.2); 
+            border-left-color: #3b82f6; 
+        }
+        
+        .alert-item.medium { 
+            background: rgba(245, 158, 11, 0.2); 
+            border-left-color: #f59e0b; 
+        }
+        
+        .alert-item.high { 
+            background: rgba(239, 68, 68, 0.2); 
+            border-left-color: #ef4444; 
+        }
+        
+        .alert-item.critical { 
+            background: rgba(220, 38, 38, 0.3); 
+            border-left-color: #dc2626; 
+        }
+        
+        .alert-item strong {
+            display: block;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+        
+        .alert-item small {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .badge-critical { background: #dc2626; }
+        .badge-high { background: #ef4444; }
+        .badge-medium { background: #f59e0b; }
+        .badge-low { background: #3b82f6; }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-box {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-box .number {
+            font-size: 2rem;
+            font-weight: bold;
+            display: block;
+        }
+        
+        .stat-box .label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎓 Exam Proctoring System</h1>
+            <p>AI-Powered Behavior Detection</p>
+        </div>
+        
+        <div class="main-grid">
+            <div class="video-section">
+                <h2>Live Camera Feed</h2>
+                <div class="video-container">
+                    <video id="video" autoplay muted></video>
+                    <canvas id="canvas"></canvas>
+                </div>
+                
+                <div class="controls">
+                    <button class="btn btn-primary" id="startBtn" onclick="startMonitoring()">
+                        Start Monitoring
+                    </button>
+                    <button class="btn btn-danger" id="stopBtn" onclick="stopMonitoring()" disabled>
+                        Stop Monitoring
+                    </button>
+                </div>
+                
+                <div class="status" id="status">
+                    <strong>Status:</strong> <span id="statusText">Not Started</span>
+                </div>
+                
+                <div class="stats">
+                    <div class="stat-box">
+                        <span class="number" id="frameCount">0</span>
+                        <span class="label">Frames Processed</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="number" id="behaviorCount">0</span>
+                        <span class="label">Behaviors Detected</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="number" id="alertCount">0</span>
+                        <span class="label">Critical Alerts</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="alerts-section">
+                <h2>🚨 Behavior Alerts</h2>
+                <div id="alertsList">
+                    <p style="text-align: center; opacity: 0.7;">No alerts yet</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusDiv = document.getElementById('status');
+        const statusText = document.getElementById('statusText');
+        const alertsList = document.getElementById('alertsList');
+        
+        let stream = null;
+        let monitoringActive = false;
+        let processingInterval = null;
+        let frameCount = 0;
+        let behaviorCount = 0;
+        let alertCount = 0;
+        
+        const CAMERA_ID = 1;  // Change this based on your camera
+        const PROCESS_INTERVAL = 1000;  // Process every 1 second
+        
+        async function startMonitoring() {
+            try {
+                // Get webcam access
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: 1280, height: 720 }, 
+                    audio: false 
+                });
+                
+                video.srcObject = stream;
+                
+                // Set canvas size to match video
+                video.onloadedmetadata = () => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                };
+                
+                monitoringActive = true;
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                statusDiv.classList.add('active');
+                statusText.textContent = 'Monitoring Active';
+                
+                // Start processing frames
+                processingInterval = setInterval(processFrame, PROCESS_INTERVAL);
+                
+                console.log('Monitoring started');
+            } catch (error) {
+                console.error('Error starting monitoring:', error);
+                alert('Failed to access camera: ' + error.message);
+            }
+        }
+        
+        function stopMonitoring() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            
+            if (processingInterval) {
+                clearInterval(processingInterval);
+            }
+            
+            monitoringActive = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            statusDiv.classList.remove('active');
+            statusText.textContent = 'Stopped';
+            
+            console.log('Monitoring stopped');
+        }
+        
+        async function processFrame() {
+            if (!monitoringActive) return;
+            
+            try {
+                // Capture frame from video
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const frameData = canvas.toDataURL('image/jpeg', 0.8);
+                
+                // Send to backend for processing
+                const response = await fetch('/api/process-frame', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        camera_id: CAMERA_ID,
+                        frame: frameData
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    frameCount++;
+                    document.getElementById('frameCount').textContent = frameCount;
+                    
+                    // Process detected behaviors
+                    if (data.behaviors && data.behaviors.length > 0) {
+                        behaviorCount += data.behaviors.length;
+                        document.getElementById('behaviorCount').textContent = behaviorCount;
+                        
+                        data.behaviors.forEach(behavior => {
+                            addAlert(behavior);
+                            
+                            // Draw bounding box if available
+                            if (behavior.bbox) {
+                                drawBoundingBox(behavior.bbox, behavior.severity);
+                            }
+                            
+                            // Count critical alerts
+                            if (behavior.severity === 'critical' || behavior.severity === 'high') {
+                                alertCount++;
+                                document.getElementById('alertCount').textContent = alertCount;
+                                statusDiv.classList.add('alert');
+                            }
+                        });
+                    }
+                } else {
+                    console.error('Processing failed:', data.error);
+                }
+            } catch (error) {
+                console.error('Error processing frame:', error);
+            }
+        }
+        
+        function addAlert(behavior) {
+            const alertItem = document.createElement('div');
+            alertItem.className = `alert-item ${behavior.severity}`;
+            
+            const time = new Date().toLocaleTimeString();
+            const confidence = (behavior.confidence * 100).toFixed(0);
+            
+            alertItem.innerHTML = `
+                <strong>${behavior.behavior_label}</strong>
+                <span class="badge badge-${behavior.severity}">${behavior.severity.toUpperCase()}</span>
+                <p>Confidence: ${confidence}%</p>
+                <small>${time}</small>
+            `;
+            
+            // Remove "no alerts" message
+            if (alertsList.querySelector('p')) {
+                alertsList.innerHTML = '';
+            }
+            
+            // Add to top of list
+            alertsList.insertBefore(alertItem, alertsList.firstChild);
+            
+            // Keep only last 20 alerts
+            while (alertsList.children.length > 20) {
+                alertsList.removeChild(alertsList.lastChild);
+            }
+        }
+        
+        function drawBoundingBox(bbox, severity) {
+            const colors = {
+                low: '#3b82f6',
+                medium: '#f59e0b',
+                high: '#ef4444',
+                critical: '#dc2626'
+            };
+            
+            ctx.strokeStyle = colors[severity] || '#3b82f6';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(bbox.x, bbox.y, bbox.w, bbox.h);
+        }
+        
+        // Clean up on page unload
+        window.addEventListener('beforeunload', stopMonitoring);
+    </script>
+</body>
+</html>
